@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identificación de Cuartas y Quintas Justas Descendentes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #555;
+            margin: 10px 0;
+            font-size: 24px;
+        }
+        .button-container, .response-container {
+            margin: 20px 0;
+        }
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .response-container p {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        footer {
+            margin-top: 30px;
+            font-size: 16px;
+            color: #333;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>AUDITIVA</h2>
+        <h1>Identificación de Cuartas y Quintas Justas Descendentes</h1>
+        <div class="button-container">
+            <button id="playIntervalButton" onclick="playInterval()">Reproducir Intervalo</button>
+        </div>
+        <div class="button-container">
+            <button id="cuartaButton" onclick="playResponseAudio('cuarta')">Cuarta Justa</button>
+            <button id="quintaButton" onclick="playResponseAudio('quinta')">Quinta Justa</button>
+        </div>
+        <div class="button-container">
+            <button id="nextButton" onclick="nextExercise()">Siguiente</button>
+        </div>
+        <div class="response-container">
+            <p id="result"></p>
+        </div>
+        <div class="response-container">
+            <p>Aciertos: <span id="correctCount">0</span></p>
+            <p>Errores: <span id="incorrectCount">0</span></p>
+        </div>
+        <footer>
+            Profesor: José Arturo Lozano
+        </footer>
+    </div>
+
+    <script>
+        var correctAnswer = '';
+        var correctCount = 0;
+        var incorrectCount = 0;
+        var currentAudio = null;
+        var currentKey = '';
+        var hasAnswered = false;
+        var maxRetries = 3;
+
+        var notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+        var intervals = {
+            'cuarta': {},
+            'quinta': {}
+        };
+
+        // Precargar archivos de audio y detectar cuando estén listos para reproducir
+        notes.forEach(function(note) {
+            var cuartaAudio = new Audio('4J DES-' + note + '.mp3');
+            var quintaAudio = new Audio('5J DES-' + note + '.mp3');
+
+            intervals['cuarta'][note] = cuartaAudio;
+            intervals['quinta'][note] = quintaAudio;
+
+            cuartaAudio.addEventListener('canplaythrough', function() {
+                console.log('Cuarta Justa ' + note + ' lista para reproducir.');
+            }, false);
+
+            quintaAudio.addEventListener('canplaythrough', function() {
+                console.log('Quinta Justa ' + note + ' lista para reproducir.');
+            }, false);
+
+            cuartaAudio.addEventListener('error', function() {
+                console.error('Error al cargar el audio Cuarta Justa ' + note);
+            });
+
+            quintaAudio.addEventListener('error', function() {
+                console.error('Error al cargar el audio Quinta Justa ' + note);
+            });
+        });
+
+        function getRandomNote() {
+            return notes[Math.floor(Math.random() * notes.length)];
+        }
+
+        function playInterval(retryCount = 0) {
+            if (!currentAudio) {
+                var intervalType = Math.random() < 0.5 ? 'cuarta' : 'quinta';
+                currentKey = getRandomNote();
+                currentAudio = intervals[intervalType][currentKey];
+
+                correctAnswer = intervalType;
+            }
+
+            currentAudio.currentTime = 0;
+            currentAudio.play().catch(error => {
+                console.error('Error al reproducir el audio:', error);
+                if (retryCount < maxRetries) {
+                    console.log('Reintentando... Intento ' + (retryCount + 1));
+                    playInterval(retryCount + 1);
+                } else {
+                    console.error('No se pudo reproducir el audio después de ' + maxRetries + ' intentos.');
+                }
+            });
+
+            hasAnswered = false;
+            document.getElementById('result').textContent = '';
+        }
+
+        function playResponseAudio(answer, retryCount = 0) {
+            if (!currentKey) return;
+
+            var responseAudio = intervals[answer][currentKey];
+            responseAudio.currentTime = 0;
+            responseAudio.play().then(() => {
+                checkAnswer(answer);  // Comprobar la respuesta después de reproducir el audio
+            }).catch(error => {
+                console.error('Error al reproducir el audio de respuesta:', error);
+                if (retryCount < maxRetries) {
+                    console.log('Reintentando... Intento ' + (retryCount + 1));
+                    playResponseAudio(answer, retryCount + 1);
+                } else {
+                    console.error('No se pudo reproducir el audio de respuesta después de ' + maxRetries + ' intentos.');
+                }
+            });
+        }
+
+        function checkAnswer(answer) {
+            if (hasAnswered) return;
+
+            var resultElement = document.getElementById('result');
+            if (answer === correctAnswer) {
+                resultElement.textContent = '¡Correcto! Era una ' + correctAnswer;
+                resultElement.style.color = 'green';
+                correctCount++;
+                document.getElementById('correctCount').textContent = correctCount;
+            } else {
+                resultElement.textContent = 'Incorrecto. Era una ' + correctAnswer;
+                resultElement.style.color = 'red';
+                incorrectCount++;
+                document.getElementById('incorrectCount').textContent = incorrectCount;
+            }
+
+            hasAnswered = true;
+        }
+
+        function nextExercise() {
+            currentAudio = null;
+            currentKey = '';
+            hasAnswered = false;
+
+            document.getElementById('result').textContent = '';
+        }
+    </script>
+</body>
+</html>
